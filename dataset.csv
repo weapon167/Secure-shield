@@ -1,0 +1,6 @@
+url,label
+import pandas as pd
+
+data = pd.read_csv(phishing_site_urls.csv.zip )  # replace with your Kaggle file name
+print(data.head())
+data = pd.read_csv("dataset/data/phishing_site_urls.csv.zip")

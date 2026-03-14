@@ -1,0 +1,16 @@
+body {
+    background-color: #121212;
+    font-family: Arial, sans-serif;
+}
+
+h2 {
+    color: #17a2b8;
+}
+
+h3 {
+    font-weight: bold;
+}
+
+ul {
+    list-style-type: square;
+}

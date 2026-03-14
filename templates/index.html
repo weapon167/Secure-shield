@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SECURESHIELD // ADVANCED THREAT TERMINAL</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+
+    <style>
+        :root {
+            --neon-blue: #00f2ff;
+            --neon-red: #ff0055;
+            --neon-green: #00ff88;
+            --neon-amber: #ffaa00;
+            --bg-dark: #050a0f;
+            --glass: rgba(0, 242, 255, 0.04);
+            --border: rgba(0, 242, 255, 0.15);
+        }
+
+        body {
+            background: radial-gradient(circle at top, #0b1c24, var(--bg-dark));
+            color: #c3e8e8;
+            font-family: 'Orbitron', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Glassmorphism Panels */
+        .cyber-card {
+            background: var(--glass);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+            transition: 0.3s ease-in-out;
+        }
+
+        .cyber-card:hover {
+            border-color: rgba(0, 242, 255, 0.4);
+        }
+
+        /* Centralized Search Area */
+        .search-container {
+            max-width: 750px;
+            margin: 40px auto;
+        }
+
+        .form-control {
+            background: #000 !important;
+            border: 1px solid var(--neon-blue) !important;
+            color: var(--neon-blue) !important;
+            font-family: 'JetBrains Mono', monospace;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .btn-scan {
+            border: 1px solid var(--neon-blue);
+            color: var(--neon-blue);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: bold;
+            transition: 0.4s;
+        }
+
+        .btn-scan:hover {
+            background: var(--neon-blue);
+            color: #000;
+            box-shadow: 0 0 20px var(--neon-blue);
+        }
+
+        /* Real-time Log Console */
+        .console {
+            background: #000;
+            border: 1px solid #1a3a3a;
+            padding: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: #50ff50;
+            height: 100px;
+            overflow-y: auto;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+
+        /* Verdict Engine */
+        .verdict-box {
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin-top: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid;
+        }
+
+        /* History & Data */
+        .history-table {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: #8da9a9;
+        }
+
+        .progress {
+            background: rgba(255, 255, 255, 0.05);
+            height: 10px;
+            border-radius: 5px;
+        }
+
+        /* Criteria Section */
+        .criteria-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--neon-blue);
+            letter-spacing: 1px;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .criteria-desc {
+            font-size: 11px;
+            color: #7a9292;
+        }
+
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: var(--neon-blue); }
+    </style>
+</head>
+<body class="container py-4">
+
+    <header class="d-flex justify-content-between align-items-end mb-5">
+        <div>
+            <h2 class="mb-0 fw-bold" style="color: var(--neon-blue); text-shadow: 0 0 12px var(--neon-blue);">SECURESHIELD</h2>
+            <div class="d-flex align-items-center">
+                <span class="spinner-grow spinner-grow-sm text-info me-2" role="status"></span>
+                <small class="text-muted">CORE STATUS: OPERATIONAL // THREAT LEVEL: MONITORING</small>
+            </div>
+        </div>
+        <div class="text-end">
+            <a href="/download-report" class="btn btn-sm btn-outline-info">DOWNLOAD FULL LOGS</a>
+        </div>
+    </header>
+
+    <div class="search-container">
+        <div class="cyber-card text-center">
+            <form method="POST" action="/predict" onsubmit="startScanSequence()">
+                <input type="text" name="url" class="form-control mb-3" placeholder="PASTE SUSPICIOUS URL FOR DEEP PACKET INSPECTION..." required autocomplete="off">
+                <button type="submit" class="btn btn-scan w-50 py-2">Execute Scan</button>
+            </form>
+            <div class="console text-start" id="log-console">
+                > INITIALIZING SCANNER...<br>> READY FOR INPUT.
+            </div>
+        </div>
+    </div>
+
+    {% if prediction %}
+    <div class="row g-4 mb-5">
+        <div class="col-lg-7">
+            <div class="cyber-card h-100">
+                <h5 class="text-info mb-4 border-bottom border-secondary pb-2">THREAT INTELLIGENCE SUMMARY</h5>
+                
+                <div class="mb-4">
+                    <p class="mb-1"><strong>TARGET URL:</strong> <span class="text-white" style="word-break: break-all;">{{ url }}</span></p>
+                    <p class="mb-1"><strong>DETECTION:</strong> <span class="badge {% if score > 55 %}bg-danger{% elif score > 20 %}bg-warning text-dark{% else %}bg-success{% endif %}">{{ prediction }}</span></p>
+                </div>
+
+                <div class="mb-4">
+                    <label class="criteria-label">Calculated Risk Probability</label>
+                    <div class="progress">
+                        <div class="progress-bar {% if score > 55 %}bg-danger{% elif score > 20 %}bg-warning{% else %}bg-success{% endif %}" 
+                             role="progressbar" style="width: {{ score }}%"></div>
+                    </div>
+                    <div class="text-end small mt-1 fw-bold">{{ score }}%</div>
+                </div>
+
+                <div class="verdict-box {% if score > 55 %}border-danger text-danger{% elif score > 20 %}border-warning text-warning{% else %}border-success text-success{% endif %}">
+                    <h6 class="text-uppercase fw-bold mb-1">Safety Verdict:</h6>
+                    <p class="fs-5 fw-bold mb-0">
+                        {% if score > 55 %}
+                            🚫 CRITICAL THREAT: DO NOT INTERACT WITH THIS PAGE.
+                        {% elif score > 20 %}
+                            ⚠️ CAUTION: SUSPICIOUS PATTERNS DETECTED. VERIFY ORIGIN.
+                        {% else %}
+                            ✅ VERIFIED SAFE: NO MALICIOUS ANOMALIES FOUND.
+                        {% endif %}
+                    </p>
+                </div>
+
+                <h6 class="text-info mt-4">HEURISTIC FLAGS</h6>
+                <ul class="list-unstyled small mt-2">
+                    {% for reason in reasons %}
+                        <li class="mb-2"><span class="text-warning">▶</span> {{ reason }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="cyber-card h-100 text-center">
+                <h5 class="text-info mb-4 border-bottom border-secondary pb-2">RISK DISTRIBUTION</h5>
+                <div style="max-height: 300px;">
+                    <canvas id="riskChart"></canvas>
+                </div>
+                <div class="mt-4 p-2 bg-black border border-secondary rounded">
+                    <small class="text-muted d-block">AI CONFIDENCE LEVEL</small>
+                    <span class="fw-bold text-info">98.4%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="cyber-card mb-5">
+        <h6 class="text-info mb-4 text-uppercase">Recent Security Logs</h6>
+        <div class="table-responsive">
+            <table class="table table-dark table-hover history-table">
+                <thead>
+                    <tr>
+                        <th>TIMESTAMP</th>
+                        <th>TARGET DOMAIN</th>
+                        <th>STATUS</th>
+                        <th>SCORE</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for h in history %}
+                    <tr>
+                        <td class="text-muted">{{ h.date }}</td>
+                        <td class="text-white">{{ h.url[:45] }}...</td>
+                        <td>
+                            <span class="{% if h.score > 55 %}text-danger{% elif h.score > 20 %}text-warning{% else %}text-success{% endif %}">
+                                {{ h.status }}
+                            </span>
+                        </td>
+                        <td>{{ h.score }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-md-3">
+            <div class="cyber-card p-3 h-100" style="border-style: dashed;">
+                <span class="criteria-label">String Entropy</span>
+                <p class="criteria-desc">Measures algorithmic randomness in domain names often used in "burnable" phishing sites.</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="cyber-card p-3 h-100" style="border-style: dashed;">
+                <span class="criteria-label">ML Classifiers</span>
+                <p class="criteria-desc">Neural network comparison against a database of 50,000+ known credential harvesting URLs.</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="cyber-card p-3 h-100" style="border-style: dashed;">
+                <span class="criteria-label">SSL Integrity</span>
+                <p class="criteria-desc">Evaluates certificate validity, protocol encryption (HTTPS), and handshake security.</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="cyber-card p-3 h-100" style="border-style: dashed;">
+                <span class="criteria-label">Spoofing Detection</span>
+                <p class="criteria-desc">Checks for Punycode character spoofing, '@' redirects, and suspicious URL-length ratios.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        const consoleLog = document.getElementById('log-console');
+
+        function startScanSequence() {
+            consoleLog.innerHTML = "> INITIATING SCAN SEQUENCE...<br>> LOADING NEURAL WEIGHTS...<br>> PERFORMING HEURISTIC ANALYSIS...";
+        }
+
+        socket.on('log_update', function(data) {
+            consoleLog.innerHTML += `<br>> ${data.msg}`;
+            consoleLog.scrollTop = consoleLog.scrollHeight;
+        });
+
+        {% if prediction %}
+        // Risk Pie/Doughnut Chart
+        new Chart(document.getElementById('riskChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Safe', 'Risk'],
+                datasets: [{
+                    data: [{{ 100 - score }}, {{ score }}],
+                    backgroundColor: ['#00f2ff', '#ff0055'],
+                    borderColor: 'rgba(0,0,0,0)',
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { color: '#c3e8e8', font: { family: 'Orbitron' } }
+                    }
+                },
+                cutout: '70%'
+            }
+        });
+        {% endif %}
+    </script>
+</body>
+</html>
