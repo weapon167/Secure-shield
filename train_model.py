@@ -173,8 +173,8 @@ base_pipeline = Pipeline([           # Pipeline runs these two steps in sequence
     (
         "rf",
         RandomForestClassifier(
-            n_estimators=300,        # builds 300 separate decision trees and averages their votes
-            max_depth=20,            # each tree can go at most 20 levels deep - prevents memorising noise
+            n_estimators=50,        # builds 300 separate decision trees and averages their votes
+            max_depth=10,            # each tree can go at most 20 levels deep - prevents memorising noise
             min_samples_leaf=4,      # a leaf node needs at least 4 training examples - reduces overfit
             max_features="sqrt",     # each tree only sees sqrt(n_features) columns - adds variety between trees
             class_weight="balanced", # automatically gives more weight to whichever class has fewer samples
@@ -187,7 +187,7 @@ base_pipeline = Pipeline([           # Pipeline runs these two steps in sequence
 calibrated_model = CalibratedClassifierCV(
     base_pipeline,       # wraps our pipeline so probability scores are corrected to be realistic
     method="isotonic",   # isotonic regression calibration - more accurate than sigmoid for Random Forests
-    cv=5                 # uses 5-fold cross-validation internally to fit the calibration curve
+    cv=3                 # uses 5-fold cross-validation internally to fit the calibration curve
 )
 
 print("  Pipeline ready: StandardScaler -> RandomForest (300 trees) -> Isotonic Calibration")
